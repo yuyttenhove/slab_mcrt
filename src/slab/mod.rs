@@ -16,13 +16,16 @@ pub trait Slab: Sync {
 
     fn run_mcrt(&self, number_of_packets: u64, number_of_detection_bins: usize, number_of_jobs: u64) -> Vec<f64> {
         let number_of_packets_per_job = number_of_packets / number_of_jobs;
+
         let pb = ProgressBar::new(number_of_jobs);
         pb.set_style(ProgressStyle::default_bar().template("[{elapsed_precise}] [{bar:40}] [{percent}%]").progress_chars("##-"));
         pb.enable_steady_tick(1000);
         pb.println("Launching photon packets!");
+
         let all_results: Vec<Vec<f64>> = (0..number_of_jobs).into_par_iter().progress_with(pb).map(|_| {
             self.raytrace_photon_packets(number_of_packets_per_job, number_of_detection_bins)
         }).collect();
+        println!("Finished!");
 
         let mut result = vec![0.; number_of_detection_bins];
         for thread_result in all_results {

@@ -3,7 +3,7 @@ use crate::slab::{GridLessSlab, Slab};
 mod slab;
 
 fn main() {
-    let tau_max = 3.0;
+    let tau_max = 10.0;
     let albedo = 0.5;
     let g = 0.0;
     let n_bins = 10;
