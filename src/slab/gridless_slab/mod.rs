@@ -47,18 +47,7 @@ impl Slab for GridLessSlab {
                 tau -= tau_random * mu;
 
                 // generate a new propagation direction
-                if f64::abs(self.g) < 1e-6 {
-                    // isotropic scattering
-                    mu = rng.gen_range(-1.0..1.0);
-                } else {
-                    // anisotropic scattering; use 3D Henyey-Greenstein phase function
-                    let f = ((1.0 - self.g) * (1.0 + self.g)) / (1.0 - self.g + self.g * rng.gen_range(0.0..2.0));
-                    let cos_theta = (1.0 + self.g * self.g - f * f) / (2.0 * self.g);
-                    let sin_theta = f64::sqrt(f64::abs((1.0 - cos_theta) * (1.0 + cos_theta)));
-                    let cos_phi = f64::cos(std::f64::consts::PI * rng.gen_range(0.0..2.0));
-                    let nu = f64::sqrt(f64::abs((1.0 - mu) * (1.0 + mu)));
-                    mu = nu * sin_theta * cos_phi + mu * cos_theta;
-                }
+                mu = Self::scatter_photon(mu, self.g, &mut rng);
             }
         }
         result

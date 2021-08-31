@@ -7,6 +7,7 @@ use indicatif::{ProgressBar, ParallelProgressIterator, ProgressStyle};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use rand::{prelude::ThreadRng, Rng};
 
 // Re-exports
 pub use gridless_slab::GridLessSlab;
@@ -34,6 +35,21 @@ pub trait Slab: Sync {
             }
         }
         Self::convert_photon_count_to_intensity(result, number_of_packets)
+    }
+
+    fn scatter_photon(mu_in: f64, g: f64, rng: &mut ThreadRng) -> f64 {
+        if f64::abs(g) < 1e-6 {
+            // isotropic scattering
+            rng.gen_range(-1.0..1.0)
+        } else {
+            // anisotropic scattering; use 3D Henyey-Greenstein phase function
+            let f = ((1.0 - g) * (1.0 + g)) / (1.0 - g + g * rng.gen_range(0.0..2.0));
+            let cos_theta = (1.0 + g * g - f * f) / (2.0 * g);
+            let sin_theta = f64::sqrt(f64::abs((1.0 - cos_theta) * (1.0 + cos_theta)));
+            let cos_phi = f64::cos(std::f64::consts::PI * rng.gen_range(0.0..2.0));
+            let nu = f64::sqrt(f64::abs((1.0 - mu_in) * (1.0 + mu_in)));
+            nu * sin_theta * cos_phi + mu_in * cos_theta
+        }
     }
 
     fn convert_photon_count_to_intensity(counts: Vec<f64>, number_of_packets: u64) -> Vec<f64> {
