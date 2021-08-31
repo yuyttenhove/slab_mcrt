@@ -4,6 +4,9 @@ mod regular_grid_slab;
 
 use rayon::prelude::{ParallelIterator, IntoParallelIterator};
 use indicatif::{ProgressBar, ParallelProgressIterator, ProgressStyle};
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 
 // Re-exports
 pub use gridless_slab::GridLessSlab;
@@ -38,5 +41,20 @@ pub trait Slab: Sync {
             intensities[j] = counts[j] * (n_bins as f64) / (number_of_packets as f64 * mu * 2.);
         }
         intensities
+    }
+
+    fn save_intensities_to_file(intensities: Vec<f64>, filename: &str) -> std::io::Result<()> {
+        // Create a path to the desired file
+        let path = Path::new(filename);
+        println!("Saving intensities to {}", path.display());
+        let mut file = File::create(&path)?;
+        file.write(b"#mu\tI\n")?;
+        let n_bins = intensities.len();
+        for (bin, intensity) in intensities.iter().enumerate() {
+            let mu = (bin as f64 + 0.5) / n_bins as f64;
+            let line = format!("{}\t{}\n", mu, intensity);
+            file.write(line.as_ref())?;
+        }
+        Ok(())
     }
 }
