@@ -25,13 +25,13 @@ impl Slab for GridLessSlab {
 
             loop {
                 // calculate the optical depth along the path
-                let taupath = if mu > 0. { tau / mu } else { (tau - self.tau_max) / mu };
+                let tau_path = if mu > 0. { tau / mu } else { (tau - self.tau_max) / mu };
 
                 // determine a random optical depth, optionally using path length stretching
-                let taurandom = -f64::ln_1p(-rng.gen_range(0.0..1.0));
+                let tau_random = -f64::ln_1p(-rng.gen_range(0.0..1.0));
 
                 // if the photon package leaves the slab, terminate its life cycle
-                if taurandom > taupath {
+                if tau_random > tau_path {
                     // if the photon package emerges at the bottom, detect it in the appropriate bin
                     if mu > 0. {
                         let bin = f64::floor(number_of_detection_bins as f64 * mu) as usize;
@@ -44,7 +44,7 @@ impl Slab for GridLessSlab {
                 weight *= self.albedo;
 
                 // calculate the interaction location
-                tau -= taurandom * mu;
+                tau -= tau_random * mu;
 
                 // generate a new propagation direction
                 if f64::abs(self.g) < 1e-6 {
