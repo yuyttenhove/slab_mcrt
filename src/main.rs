@@ -3,7 +3,22 @@ use crate::slab::{GridLessSlab, Slab};
 mod slab;
 
 fn main() {
-    let slab = GridLessSlab::new(2., 0.5, 0.);
-    let result = slab.run_mcrt(1e9 as u64, 10, 500);
-    GridLessSlab::save_intensities_to_file(result, "test.txt").unwrap();
+    let tau_max = 3.0;
+    let albedo = 0.5;
+    let g = 0.0;
+    let n_bins = 10;
+    let log_n_photons = 9;
+
+    let slab = GridLessSlab::new(tau_max, albedo, g);
+    GridLessSlab::save_intensities_to_file(
+        slab.run_mcrt(u64::pow(10, log_n_photons), n_bins, 500),
+        &format!(
+            "output/gridless_t{}_a{}_g{}_n{}_p{}.txt",
+            tau_max as u64,
+            10 * albedo as u64,
+            10 * g as u64,
+            n_bins,
+            log_n_photons
+        )
+    ).unwrap();
 }
