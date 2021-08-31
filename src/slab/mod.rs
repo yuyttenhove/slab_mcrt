@@ -2,7 +2,7 @@ mod gridless_slab;
 mod voronoi_slab;
 mod regular_grid_slab;
 
-use rayon::prelude::*;
+use rayon::prelude::{ParallelIterator, IntoParallelIterator};
 
 // Re-exports
 pub use gridless_slab::GridLessSlab;

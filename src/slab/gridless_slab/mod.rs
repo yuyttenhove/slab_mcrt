@@ -17,9 +17,10 @@ impl Slab for GridLessSlab {
     fn raytrace_photon_packets(&self, number_of_packets: u64, number_of_detection_bins: usize) -> Vec<f64> {
         let mut result = vec![0.; number_of_detection_bins];
         let mut rng = rand::thread_rng();
+
         for _ in 0..number_of_packets {
             let mut tau = self.tau_max;
-            let mut mu = rng.gen_range(0.0..1.0);
+            let mut mu = f64::sqrt(rng.gen_range(0.0..1.0));
             let mut weight = 1.0;
 
             loop {
@@ -27,14 +28,13 @@ impl Slab for GridLessSlab {
                 let taupath = if mu > 0. { tau / mu } else { (tau - self.tau_max) / mu };
 
                 // determine a random optical depth, optionally using path length stretching
-                let taurandom = -f64::ln(1.0 - rng.gen_range(0.0..1.0));
+                let taurandom = -f64::ln_1p(-rng.gen_range(0.0..1.0));
 
                 // if the photon package leaves the slab, terminate its life cycle
                 if taurandom > taupath {
                     // if the photon package emerges at the bottom, detect it in the appropriate bin
                     if mu > 0. {
                         let bin = f64::floor(number_of_detection_bins as f64 * mu) as usize;
-                        // let mut result = result.lock().unwrap();
                         result[bin] += weight;
                     }
                     break;
