@@ -1,6 +1,7 @@
 use crate::slab::{GridLessSlab, Slab};
 
 mod slab;
+mod vector;
 
 fn main() {
     let tau_max = 10.0;
