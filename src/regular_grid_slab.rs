@@ -2,7 +2,7 @@ mod grid_cell;
 
 use grid_cell::GridCell;
 use crate::vector::Vec2;
-use super::Slab;
+use crate::slab::Slab;
 use rand::Rng;
 
 pub struct RegularGridSlab {
@@ -88,7 +88,6 @@ impl Slab for RegularGridSlab {
                 let mut path_length_cell = f64::min(path_lengths_cell.0, path_lengths_cell.1);
 
                 // Handle case of packet leaving cell or domain
-                'inner:
                 while path_length_random > path_length_cell {
                     // update location
                     x += path_length_cell * sin_theta;

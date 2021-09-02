@@ -1,4 +1,4 @@
-use super::Slab;
+use crate::slab::Slab;
 use rand::Rng;
 
 pub struct GridLessSlab {

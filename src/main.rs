@@ -1,7 +1,10 @@
-use crate::slab::{GridLessSlab, Slab, RegularGridSlab};
+use crate::slab::{GridLessSlab, RegularGridSlab, Slab};
 
 mod slab;
 mod vector;
+mod gridless_slab;
+mod regular_grid_slab;
+mod voronoi_slab;
 
 fn main() {
     let tau_max = 10.0;

@@ -1,17 +1,14 @@
-mod gridless_slab;
-mod voronoi_slab;
-mod regular_grid_slab;
-
-use rayon::prelude::{ParallelIterator, IntoParallelIterator};
-use indicatif::{ProgressBar, ParallelProgressIterator, ProgressStyle};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
 use rand::{prelude::ThreadRng, Rng};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
 // Re-exports
-pub use gridless_slab::GridLessSlab;
-pub use regular_grid_slab::RegularGridSlab;
+pub use crate::gridless_slab::GridLessSlab;
+pub use crate::regular_grid_slab::RegularGridSlab;
 
 pub trait Slab: Sync {
     fn raytrace_photon_packets(&self, number_of_packets: u64, number_of_detection_bins: usize) -> Vec<f64>;
