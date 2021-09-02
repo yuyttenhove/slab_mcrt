@@ -1,4 +1,5 @@
 use crate::slab::{GridLessSlab, RegularGridSlab, Slab};
+use crate::voronoi_slab::VoronoiSlab;
 
 mod slab;
 mod vector;
@@ -11,7 +12,7 @@ fn main() {
     let albedo = 0.5;
     let g = 0.0;
     let n_bins = 10;
-    let log_n_photons = 9;
+    let log_n_photons = 4;
 
     let slab = GridLessSlab::new(tau_max, albedo, g);
     GridLessSlab::save_intensities_to_file(
@@ -38,4 +39,7 @@ fn main() {
             log_n_photons
         )
     ).unwrap();
+
+    let voronoi_slab = VoronoiSlab::new(tau_max, albedo, g, 10, 0.1);
+    voronoi_slab.save_grid("vor_test.txt");
 }

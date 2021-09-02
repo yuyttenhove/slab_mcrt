@@ -9,3 +9,6 @@ edition = "2018"
 rand = "0.8.4"
 rayon = "1"
 indicatif = {version = "0.16.2", features = ["rayon"]}
+ordered-float = "2.7.0"
+permutation = "0.2.5"
+num-traits = "0.2.14"

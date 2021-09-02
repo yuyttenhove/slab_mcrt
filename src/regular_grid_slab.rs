@@ -16,25 +16,27 @@ impl RegularGridSlab {
     pub fn new(tau_max: f64, albedo: f64, g: f64, resolution: i64) -> RegularGridSlab {
         // We assume a box of size 1 in all dimensions, of homogeneous density and with kappa = 1.
         // Tau_max is then equal to z_max * rho = rho.
-        let anchor = Vec2::new(0., 0.);
-        let sides = Vec2::new(1., 1.);
-        let cell_sides = sides / resolution as f64;
-
-        let mut cells = Vec::new();
+        let mut slab = RegularGridSlab {
+            anchor: Vec2::new(0., 0.),
+            sides: Vec2::new(1., 1.),
+            resolution,
+            cells: Vec::new()
+        };
+        let cell_sides = slab.sides / resolution as f64;
         for row in 0..resolution {
             for col in 0..resolution {
-                cells.push(
+                slab.cells.push(
                     GridCell::new(
                         tau_max,
                         albedo,
                         g,
-                        anchor + Vec2::new(col as f64 * cell_sides.x(), row as f64 * cell_sides.y()),
+                        slab.anchor + Vec2::new(col as f64 * cell_sides.x(), row as f64 * cell_sides.y()),
                         cell_sides
                     )
                 )
             }
         }
-        RegularGridSlab {anchor, sides, resolution, cells}
+        slab
     }
 
     fn get_cell_at(&self, row: i64, col: i64) -> &GridCell {
