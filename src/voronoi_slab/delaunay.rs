@@ -273,13 +273,13 @@ impl DelaunayTriangulation {
         );
         // add ghost particles in positive y direction
         self.add_ghost_vertices_along_axis(
-            &arg_sort_y, |v| v.y, 1,
-            old_search_radius, search_radius, |v| (v.x, v.y + sides[1])
+            &arg_sort_y, |v| sides[1] - v.y, -1,
+            old_search_radius, search_radius, |v| (v.x, 2. * sides[1] - v.y)
         );
         // add ghost particles in negative y direction
         self.add_ghost_vertices_along_axis(
-            &arg_sort_y, |v| sides[1] - v.y, -1,
-            old_search_radius, search_radius, |v| (v.x, v.y - sides[1])
+            &arg_sort_y, |v| v.y, 1,
+            old_search_radius, search_radius, |v| (v.x, -v.y)
         );
         // In order to search for all particles up to r away from the corner in the diagonal
         // directions, we must compensate with a factor 1/sqrt(2); without it we could miss some
@@ -287,23 +287,23 @@ impl DelaunayTriangulation {
         let sqrt2 = f64::sqrt(2.);
         // add ghost particles in positive xpy direction
         self.add_ghost_vertices_along_axis(
-            &arg_sort_xpy, |v| (v.x + v.y) / sqrt2, 1,
-            old_search_radius, search_radius, |v| (v.x + sides[0], v.y + sides[1])
+            &arg_sort_xmy, |v| (v.x + sides[1]- v.y) / sqrt2, 1,
+            old_search_radius, search_radius, |v| (v.x + sides[0], 2. * sides[1] - v.y)
         );
         // add ghost particles in negative xpy direction
         self.add_ghost_vertices_along_axis(
-            &arg_sort_xpy, |v| ((sides[0] - v.x) + (sides[1] - v.y)) / sqrt2, -1,
-            old_search_radius, search_radius, |v| (v.x - sides[0], v.y - sides[1])
+            &arg_sort_xmy, |v| (sides[0] - v.x + v.y) / sqrt2, -1,
+            old_search_radius, search_radius, |v| (v.x - sides[0], -v.y)
         );
         // add ghost particles in positive xmy direction
         self.add_ghost_vertices_along_axis(
-            &arg_sort_xmy, |v| (v.x + (sides[1] - v.y)) / sqrt2, 1,
-            old_search_radius, search_radius, |v| (v.x + sides[0], v.y - sides[1])
+            &arg_sort_xpy, |v| (v.x + v.y) / sqrt2, 1,
+            old_search_radius, search_radius, |v| (v.x + sides[0], -v.y)
         );
         // add ghost particles in negative xmy direction
         self.add_ghost_vertices_along_axis(
-            &arg_sort_xmy, |v| ((sides[0] - v.x) + v.y) / sqrt2, -1,
-            old_search_radius, search_radius, |v| (v.x - sides[0], v.y + sides[1])
+            &arg_sort_xpy, |v| (sides[0] - v.x + sides[1] - v.y) / sqrt2, -1,
+            old_search_radius, search_radius, |v| (v.x - sides[0], 2. * sides[1] - v.y)
         );
     }
 
@@ -595,7 +595,7 @@ impl DelaunayTriangulation {
                                  &self.vertices[triangle.vertices[2] as usize]);
                 let d = &self.vertices[neighbour.vertices[idx_in_ngbr] as usize];
                 let in_circle = in_circle_2d(a.x_scaled, a.y_scaled, b.x_scaled, b.y_scaled, c.x_scaled, c.y_scaled, d.x_scaled, d.y_scaled);
-                assert!(in_circle >= 0., "in_circle test gave {:?}", in_circle)
+                assert!(in_circle >= -1e-10, "in_circle test gave {:?} for vertices: \n a: {:?}\n b: {:?}\n c: {:?}\n d: {:?}\n", in_circle, a, b, c, d)
             }
         }
         for (i, vertex) in self.vertices.iter().enumerate() {

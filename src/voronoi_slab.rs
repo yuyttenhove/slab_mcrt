@@ -31,6 +31,12 @@ impl VoronoiSlab {
                 generators.push(VoronoiGenerator::new(tau_max, albedo, g, x, y));
             }
         }
+        // Add row of boundary cells on top and bottom of slab
+        // for col in 0..resolution {
+        //     let x = (col as f64 + 0.5) / resolution as f64;
+        //     generators.push(VoronoiGenerator::new(tau_max, albedo, g, x, 0.9999));
+        //     generators.push(VoronoiGenerator::new(tau_max, albedo, g, x, 0.0001));
+        // }
 
         let del_tess = DelaunayTriangulation::from_generators(&generators, anchor, sides, true);
         let vor_tess = VoronoiGrid::from_delaunay_triangulation(&del_tess);
