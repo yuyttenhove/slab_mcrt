@@ -8,7 +8,7 @@ fn main() {
     let albedo = 0.5;
     let g = 0.0;
     let n_bins = 10;
-    let log_n_photons = 8;
+    let log_n_photons = 9;
 
     let slab = GridLessSlab::new(tau_max, albedo, g);
     GridLessSlab::save_intensities_to_file(

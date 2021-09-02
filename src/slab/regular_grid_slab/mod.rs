@@ -40,6 +40,20 @@ impl RegularGridSlab {
     fn get_cell_at(&self, row: i64, col: i64) -> &GridCell {
         &self.cells[row as usize * self.resolution as usize + col as usize]
     }
+
+    fn path_length_cell(cell: &GridCell, cos_theta: f64, sin_theta: f64, x: f64, y: f64) -> (f64, f64) {
+        let path_length_x = if sin_theta > 0. {
+            (cell.anchor().x() + cell.sides().x() - x) / sin_theta
+        } else {
+            (cell.anchor().x() - x) / sin_theta
+        };
+        let path_length_y = if cos_theta > 0. {
+            (y - cell.anchor().y()) / cos_theta
+        } else {
+            (y - cell.anchor().y() - cell.sides().y()) / cos_theta
+        };
+        (path_length_x, path_length_y)
+    }
 }
 
 
@@ -59,35 +73,28 @@ impl Slab for RegularGridSlab {
             let mut col = f64::floor(x * self.resolution as f64) as i64;
             let mut cell = self.get_cell_at(row, col);
 
+            'outer:
             loop {
                 // Determine sin_theta, only correct for isotropic scattering!
                 let sign = if rng.gen_bool(0.5) { 1. } else { -1. };
                 let sin_theta = sign * f64::sqrt((1. - cos_theta) * (1. + cos_theta));
 
-                // calculate the path length within the current cell along the path
-                let path_length_x = if sin_theta > 0. {
-                    (cell.anchor().x() + cell.sides().x() - x) / sin_theta
-                } else {
-                    (cell.anchor().x() - x) / sin_theta
-                };
-                let path_length_y = if cos_theta > 0. {
-                    (y - cell.anchor().y()) / cos_theta
-                } else {
-                    (y - cell.anchor().y() - cell.sides().y()) / cos_theta
-                };
-                let path_length_cell = f64::min(path_length_x, path_length_y);
-
                 // determine a random path length, optionally using path length stretching
                 let density = cell.density();
-                let path_length_random = -f64::ln(density * (1. - rng.gen_range(0.0..1.0)));
+                let mut path_length_random = -f64::ln_1p(-rng.gen_range(0.0..1.0)) / density;
 
-                // update location
-                x += path_length_random * sin_theta;
-                y -= path_length_random * cos_theta;
+                // calculate the path length within the current cell along the path
+                let mut path_lengths_cell = Self::path_length_cell(cell, cos_theta, sin_theta, x, y);
+                let mut path_length_cell = f64::min(path_lengths_cell.0, path_lengths_cell.1);
 
                 // Handle case of packet leaving cell or domain
-                if path_length_random > path_length_cell {
-                    if path_length_x < path_length_y {
+                'inner:
+                while path_length_random > path_length_cell {
+                    // update location
+                    x += path_length_cell * sin_theta;
+                    y -= path_length_cell * cos_theta;
+                    path_length_random -= path_length_cell;
+                    if path_lengths_cell.0 < path_lengths_cell.1 {
                         col = if sin_theta > 0. { col + 1 } else { col - 1 };
                         if col >= self.resolution {
                             col -= self.resolution;
@@ -99,16 +106,21 @@ impl Slab for RegularGridSlab {
                     } else {
                         row = if cos_theta < 0. { row + 1 } else { row - 1 };
                         if row >= self.resolution {
-                            break;
+                            break 'outer;
                         } else if row < 0 {
                             let bin = f64::floor(number_of_detection_bins as f64 * cos_theta) as usize;
                             result[bin] += weight;
-                            break;
+                            break 'outer;
                         }
                     }
                     cell = self.get_cell_at(row, col);
-                    continue;
+                    path_lengths_cell = Self::path_length_cell(cell, cos_theta, sin_theta, x, y);
+                    path_length_cell = f64::min(path_lengths_cell.0, path_lengths_cell.1);
                 }
+
+                // update location
+                x += path_length_random * sin_theta;
+                y -= path_length_random * cos_theta;
 
                 // Correct the photon package weight for absorption
                 weight *= cell.albedo();
