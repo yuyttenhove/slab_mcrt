@@ -10,6 +10,18 @@ use delaunay::DelaunayTriangulation;
 use rand::{thread_rng, Rng};
 
 
+#[derive(Copy, Clone, Debug)]
+enum NeighbourDirection {
+    Up,
+    UpRight,
+    Right,
+    DownRight,
+    Down,
+    DownLeft,
+    Left,
+    UpLeft
+}
+
 pub struct VoronoiSlab {
     anchor: Vec2<f64>,
     sides: Vec2<f64>,
@@ -26,17 +38,11 @@ impl VoronoiSlab {
         let mut rng = thread_rng();
         for row in 0..resolution {
             for col in 0..resolution {
-                let x = (col as f64 + 0.5) / resolution as f64 * (1.0 + perturbation * rng.gen_range(-0.5..0.5));
-                let y = (row as f64 + 0.5) / resolution as f64 * (1.0 + perturbation * rng.gen_range(-0.5..0.5));
+                let x = (col as f64 + 0.5) / resolution as f64 + (perturbation * rng.gen_range(-0.5..0.5) / resolution as f64);
+                let y = (row as f64 + 0.5) / resolution as f64 + (perturbation * rng.gen_range(-0.5..0.5) / resolution as f64);
                 generators.push(VoronoiGenerator::new(tau_max, albedo, g, x, y));
             }
         }
-        // Add row of boundary cells on top and bottom of slab
-        // for col in 0..resolution {
-        //     let x = (col as f64 + 0.5) / resolution as f64;
-        //     generators.push(VoronoiGenerator::new(tau_max, albedo, g, x, 0.9999));
-        //     generators.push(VoronoiGenerator::new(tau_max, albedo, g, x, 0.0001));
-        // }
 
         let del_tess = DelaunayTriangulation::from_generators(&generators, anchor, sides, true);
         let vor_tess = VoronoiGrid::from_delaunay_triangulation(&del_tess);

@@ -1,5 +1,6 @@
 use super::delaunay::DelaunayTriangulation;
 use super::geometry::Triangle;
+use super::NeighbourDirection;
 use std::fs;
 use std::iter::FromIterator;
 use crate::vector::Vec2;
@@ -11,7 +12,8 @@ struct VoronoiFace {
     start: Vec2<f64>,
     end: Vec2<f64>,
     midpoint: Vec2<f64>,
-    adjacent_cells: [i32; 2]
+    adjacent_cells: [i32; 2],
+    neighbour_direction: Option<NeighbourDirection>
 }
 
 
@@ -123,13 +125,23 @@ impl VoronoiGrid {
                 let current_wedge_area = current_wedge.area();
                 // create faces between cells
                 let neighbouring_generator_idx_in_d = current_triangle.vertices[((idx_in_current_triangle + 2) % 3) as usize];
-                let neighbouring_voronoi_cell_idx = neighbouring_generator_idx_in_d - 3;
+                let neighbour_direction;
+                let neighbouring_voronoi_cell_idx;
+                if neighbouring_generator_idx_in_d < triangulation.n_vertices as i32 + 3 {
+                    neighbour_direction = None;
+                    neighbouring_voronoi_cell_idx = neighbouring_generator_idx_in_d - 3;
+                } else {
+                    let info = triangulation.neighbour_info[neighbouring_generator_idx_in_d as usize - triangulation.n_vertices - 3];
+                    neighbour_direction = Some(info.1);
+                    neighbouring_voronoi_cell_idx = info.0 as i32;
+                };
                 current_cell.faces.push(
                     self.create_or_get_face(
                         current_voronoi_vertex_idx,
                         next_voronoi_vertex_idx,
                         current_voronoi_cell_idx,
-                        neighbouring_voronoi_cell_idx
+                        neighbouring_voronoi_cell_idx,
+                        neighbour_direction
                     )
                 );
 
@@ -146,11 +158,11 @@ impl VoronoiGrid {
         self.cells.push(current_cell);
     }
 
-    fn create_or_get_face(&mut self, vertex_from_idx: i32, vertex_to_idx: i32, cell_in_idx: i32, cell_out_idx: i32) -> i32 {
+    fn create_or_get_face(&mut self, vertex_from_idx: i32, vertex_to_idx: i32, cell_in_idx: i32, cell_out_idx: i32, neighbour_direction: Option<NeighbourDirection>) -> i32 {
         assert_ne!(cell_in_idx, cell_out_idx, "Trying to add face between a cell and itself!");
         assert_ne!(vertex_from_idx, vertex_to_idx, "Trying to add a face from a vertex to itself!");
         let face_idx: i32;
-        if cell_out_idx < cell_in_idx && cell_out_idx > 2 {
+        if cell_out_idx < cell_in_idx && cell_out_idx > 2 && neighbour_direction.is_none() {
             let cell_out = &self.cells[cell_out_idx as usize];
             let face_idx_in_cell_out = cell_out.vertices.iter().position(|&v_idx| v_idx == vertex_to_idx).unwrap();
             face_idx = cell_out.faces[face_idx_in_cell_out];
@@ -165,7 +177,8 @@ impl VoronoiGrid {
                     start: self.vertices[vertex_from_idx as usize],
                     end: self.vertices[vertex_to_idx as usize],
                     midpoint: (self.vertices[vertex_to_idx as usize] + self.vertices[vertex_from_idx as usize]) / 2.,
-                    adjacent_cells: [cell_in_idx, cell_out_idx]
+                    adjacent_cells: [cell_in_idx, cell_out_idx],
+                    neighbour_direction
                 }
             );
         }

@@ -40,6 +40,6 @@ fn main() {
         )
     ).unwrap();
 
-    let voronoi_slab = VoronoiSlab::new(tau_max, albedo, g, 10, 0.1);
+    let voronoi_slab = VoronoiSlab::new(tau_max, albedo, g, 10, 0.5);
     voronoi_slab.save_grid("vor_test.txt");
 }

@@ -1,4 +1,5 @@
 use super::geometry::{orient_2d, in_circle_2d, circumcenter_2d, circumradius_2d};
+use super::NeighbourDirection;
 use crate::vector::Vec2;
 use std::collections::VecDeque;
 use std::fs;
@@ -102,6 +103,7 @@ pub struct DelaunayTriangulation {
     pub(super) n_vertices: usize,
     pub(super) anchor: Vec2<f64>,
     pub(super) sides: Vec2<f64>,
+    pub(super) neighbour_info: Vec<(usize, NeighbourDirection)>,
     side: f64,
     inverse_side: f64,
     current_triangle_idx: i32,
@@ -264,22 +266,22 @@ impl DelaunayTriangulation {
         // add ghost particles in positive x direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_x, |v| v.x, 1,
-            old_search_radius, search_radius, |v| (v.x + sides[0], v.y)
+            old_search_radius, search_radius, |v| (v.x + sides[0], v.y), NeighbourDirection::Right
         );
         // add ghost particles in negative x direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_x, |v| sides[0] - v.x, -1,
-            old_search_radius, search_radius, |v| (v.x - sides[0], v.y)
+            old_search_radius, search_radius, |v| (v.x - sides[0], v.y), NeighbourDirection::Left
         );
         // add ghost particles in positive y direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_y, |v| sides[1] - v.y, -1,
-            old_search_radius, search_radius, |v| (v.x, 2. * sides[1] - v.y)
+            old_search_radius, search_radius, |v| (v.x, 2. * sides[1] - v.y), NeighbourDirection::Up
         );
         // add ghost particles in negative y direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_y, |v| v.y, 1,
-            old_search_radius, search_radius, |v| (v.x, -v.y)
+            old_search_radius, search_radius, |v| (v.x, -v.y), NeighbourDirection::Down
         );
         // In order to search for all particles up to r away from the corner in the diagonal
         // directions, we must compensate with a factor 1/sqrt(2); without it we could miss some
@@ -288,22 +290,22 @@ impl DelaunayTriangulation {
         // add ghost particles in positive xpy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xmy, |v| (v.x + sides[1]- v.y) / sqrt2, 1,
-            old_search_radius, search_radius, |v| (v.x + sides[0], 2. * sides[1] - v.y)
+            old_search_radius, search_radius, |v| (v.x + sides[0], 2. * sides[1] - v.y), NeighbourDirection::UpRight
         );
         // add ghost particles in negative xpy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xmy, |v| (sides[0] - v.x + v.y) / sqrt2, -1,
-            old_search_radius, search_radius, |v| (v.x - sides[0], -v.y)
+            old_search_radius, search_radius, |v| (v.x - sides[0], -v.y), NeighbourDirection::DownLeft
         );
         // add ghost particles in positive xmy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xpy, |v| (v.x + v.y) / sqrt2, 1,
-            old_search_radius, search_radius, |v| (v.x + sides[0], -v.y)
+            old_search_radius, search_radius, |v| (v.x + sides[0], -v.y), NeighbourDirection::DownRight
         );
         // add ghost particles in negative xmy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xpy, |v| (sides[0] - v.x + sides[1] - v.y) / sqrt2, -1,
-            old_search_radius, search_radius, |v| (v.x - sides[0], 2. * sides[1] - v.y)
+            old_search_radius, search_radius, |v| (v.x - sides[0], 2. * sides[1] - v.y), NeighbourDirection::UpLeft
         );
     }
 
@@ -313,18 +315,21 @@ impl DelaunayTriangulation {
                                      direction: i8,
                                      old_search_radius: f64,
                                      search_radius: f64,
-                                     insert_f: impl Fn(&DelaunayVertex)->(f64, f64)) {
+                                     insert_f: impl Fn(&DelaunayVertex)->(f64, f64),
+                                     neighbour_direction: NeighbourDirection) {
         let mut i: usize;
         if direction == 1 { i = 0; }
         else if direction == -1 { i = self.n_vertices - 1; }
         else { panic!("The only alowed values for direction are 1 or -1!"); }
 
-        let mut vertex = &self.vertices[ordering.apply_inv_idx(i) + 3];
+        let mut mirrored_vertex_idx = ordering.apply_inv_idx(i) + 3;
+        let mut vertex = &self.vertices[mirrored_vertex_idx];
         let mut comp_value = comp_f(vertex);
         while comp_value < search_radius {
             if old_search_radius <= comp_value {
                 let (x, y) = insert_f(vertex);
                 self.insert_point(x, y);
+                self.neighbour_info.push((mirrored_vertex_idx, neighbour_direction))
             }
             if direction == 1 {
                 if i == self.n_vertices - 1 {break;}
@@ -333,7 +338,8 @@ impl DelaunayTriangulation {
                 if i == 0 {break;}
                 i -= 1;
             }
-            vertex = &self.vertices[ordering.apply_inv_idx(i) + 3];
+            mirrored_vertex_idx = ordering.apply_inv_idx(i) + 3;
+            vertex = &self.vertices[mirrored_vertex_idx];
             comp_value = comp_f(vertex);
         }
     }
