@@ -65,7 +65,7 @@ impl Slab for RegularGridSlab {
         let mut rng = rand::thread_rng();
 
         for _ in 0..number_of_packets {
-            let mut x = rng.gen_range(0.0..1.0);
+            let mut x = 0.5;
             let mut y = 1.0;
             let mut cos_theta = f64::sqrt(rng.gen_range(0.0..1.0));
             let mut weight = 1.0;

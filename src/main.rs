@@ -8,11 +8,11 @@ mod regular_grid_slab;
 mod voronoi_slab;
 
 fn main() {
-    let tau_max = 10.0;
+    let tau_max = 5.0;
     let albedo = 0.5;
     let g = 0.0;
     let n_bins = 10;
-    let log_n_photons = 4;
+    let log_n_photons = 8;
 
     let slab = GridLessSlab::new(tau_max, albedo, g);
     GridLessSlab::save_intensities_to_file(
@@ -42,4 +42,15 @@ fn main() {
 
     let voronoi_slab = VoronoiSlab::new(tau_max, albedo, g, 10, 0.5);
     voronoi_slab.save_grid("vor_test.txt");
+    VoronoiSlab::save_intensities_to_file(
+        voronoi_slab.run_mcrt(u64::pow(10, log_n_photons), n_bins, 500),
+        &format!(
+            "output/voronoi_t{}_a{}_g{}_n{}_p{}.txt",
+            tau_max as u64,
+            10 * albedo as u64,
+            10 * g as u64,
+            n_bins,
+            log_n_photons
+        )
+    ).unwrap();
 }

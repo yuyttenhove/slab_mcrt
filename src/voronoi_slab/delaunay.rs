@@ -290,22 +290,22 @@ impl DelaunayTriangulation {
         // add ghost particles in positive xpy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xmy, |v| (v.x + sides[1]- v.y) / sqrt2, 1,
-            old_search_radius, search_radius, |v| (v.x + sides[0], 2. * sides[1] - v.y), NeighbourDirection::UpRight
+            old_search_radius, search_radius, |v| (v.x + sides[0], 2. * sides[1] - v.y), NeighbourDirection::Up
         );
         // add ghost particles in negative xpy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xmy, |v| (sides[0] - v.x + v.y) / sqrt2, -1,
-            old_search_radius, search_radius, |v| (v.x - sides[0], -v.y), NeighbourDirection::DownLeft
+            old_search_radius, search_radius, |v| (v.x - sides[0], -v.y), NeighbourDirection::Down
         );
         // add ghost particles in positive xmy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xpy, |v| (v.x + v.y) / sqrt2, 1,
-            old_search_radius, search_radius, |v| (v.x + sides[0], -v.y), NeighbourDirection::DownRight
+            old_search_radius, search_radius, |v| (v.x + sides[0], -v.y), NeighbourDirection::Down
         );
         // add ghost particles in negative xmy direction
         self.add_ghost_vertices_along_axis(
             &arg_sort_xpy, |v| (sides[0] - v.x + sides[1] - v.y) / sqrt2, -1,
-            old_search_radius, search_radius, |v| (v.x - sides[0], 2. * sides[1] - v.y), NeighbourDirection::UpLeft
+            old_search_radius, search_radius, |v| (v.x - sides[0], 2. * sides[1] - v.y), NeighbourDirection::Up
         );
     }
 

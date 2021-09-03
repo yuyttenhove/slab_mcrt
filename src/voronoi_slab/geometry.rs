@@ -90,3 +90,19 @@ pub(super) fn oriented_volume_2d(ax: f64, ay: f64, bx: f64, by: f64, cx: f64, cy
 fn centroid_2d(ax: f64, ay: f64, bx: f64, by: f64, cx: f64, cy: f64) -> Vec2<f64> {
     Vec2::new((ax + bx + cx) / 3.,(ay + by + cy) / 3.)
 }
+
+pub(super) fn line_segment_intersection(ax: f64, ay: f64, bx: f64, by: f64, cx: f64, cy: f64, dx: f64, dy: f64) -> Option<(f64, f64)> {
+    let mut t = (ax - cx) * (cy - dy) - (ay - cy) * (cx - dx);
+    let u = (bx - ax) * (ay - cy) - (by - ay) * (ax - cx);
+
+    let denominator = (ax - bx) * (cy - dy) - (ay - by) * (cx - dx);
+
+    let test1 = (f64::abs(t) <= f64::abs(denominator)) && (f64::signum(t) == f64::signum(denominator));
+    let test2 = (f64::abs(u) <= f64::abs(denominator)) && (f64::signum(u) == f64::signum(denominator));
+
+    if test1 && test2 {
+        t /= denominator;
+        return Some((ax + t * (bx - ax), ay + t * (by - ay)));
+    }
+    None
+}

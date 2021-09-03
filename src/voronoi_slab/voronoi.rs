@@ -1,28 +1,54 @@
 use super::delaunay::DelaunayTriangulation;
-use super::geometry::Triangle;
+use super::geometry::{Triangle, line_segment_intersection};
 use super::NeighbourDirection;
 use std::fs;
+use std::fmt;
 use std::iter::FromIterator;
 use crate::vector::Vec2;
+use std::fmt::Formatter;
+
+#[derive(Copy, Clone)]
+pub(super) struct IntersectionResult<'a> {
+    pub(super) distance: f64,
+    pub(super) intersection: Vec2<f64>,
+    pub(super) exit_face_idx: i32,
+    pub(super) exit_face: &'a VoronoiFace
+}
+
+
+#[derive(Debug, Clone)]
+pub struct VoronoiError {
+    pub message: String,
+    pub line: u32,
+    pub column: u32
+}
+
+impl fmt::Display for VoronoiError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({}:{})", self.message, self.line, self.column)
+    }
+}
+
+impl std::error::Error for VoronoiError {}
 
 /// A face (line) between two cells in a voronoi grid
 #[derive(Debug, Default)]
-struct VoronoiFace {
+pub(super) struct VoronoiFace {
     area: f64,
     start: Vec2<f64>,
     end: Vec2<f64>,
     midpoint: Vec2<f64>,
-    adjacent_cells: [i32; 2],
-    neighbour_direction: Option<NeighbourDirection>
+    pub(super) adjacent_cells: [i32; 2],
+    pub(super) neighbour_direction: Option<NeighbourDirection>
 }
 
 
 /// A cell from a voronoi grid in 2D
 #[derive(Debug)]
-struct VoronoiCell {
+pub(super) struct VoronoiCell {
     vertices: Vec<i32>,
     faces: Vec<i32>,
-    centroid: Vec2<f64>,
+    pub(super) centroid: Vec2<f64>,
     volume: f64
 }
 
@@ -41,7 +67,7 @@ impl Default for VoronoiCell {
 pub struct VoronoiGrid {
     vertices: Vec<Vec2<f64>>,
     faces: Vec<VoronoiFace>,
-    cells: Vec<VoronoiCell>,
+    pub(super) cells: Vec<VoronoiCell>,
     is_periodic: bool,
     anchor: Vec2<f64>,
     sides: Vec2<f64>,
@@ -133,7 +159,7 @@ impl VoronoiGrid {
                 } else {
                     let info = triangulation.neighbour_info[neighbouring_generator_idx_in_d as usize - triangulation.n_vertices - 3];
                     neighbour_direction = Some(info.1);
-                    neighbouring_voronoi_cell_idx = info.0 as i32;
+                    neighbouring_voronoi_cell_idx = info.0 as i32 - 3;
                 };
                 current_cell.faces.push(
                     self.create_or_get_face(
@@ -159,7 +185,7 @@ impl VoronoiGrid {
     }
 
     fn create_or_get_face(&mut self, vertex_from_idx: i32, vertex_to_idx: i32, cell_in_idx: i32, cell_out_idx: i32, neighbour_direction: Option<NeighbourDirection>) -> i32 {
-        assert_ne!(cell_in_idx, cell_out_idx, "Trying to add face between a cell and itself!");
+        // assert_ne!(cell_in_idx, cell_out_idx, "Trying to add face between a cell and itself!");
         assert_ne!(vertex_from_idx, vertex_to_idx, "Trying to add a face from a vertex to itself!");
         let face_idx: i32;
         if cell_out_idx < cell_in_idx && cell_out_idx > 2 && neighbour_direction.is_none() {
@@ -183,6 +209,60 @@ impl VoronoiGrid {
             );
         }
         face_idx
+    }
+
+    pub(super) fn raytrace_cell(&self, cell_idx: usize, start_x: f64, start_y: f64, cos_theta: f64, sin_theta: f64, prev_face_idx: i32) -> Result<IntersectionResult, VoronoiError> {
+        let cell = &self.cells[cell_idx];
+        let end_x = start_x + sin_theta * self.sides.x() * 2.;
+        let end_y = start_y - cos_theta * self.sides.y() * 2.;
+
+        let mut face;
+
+        let mut possible_results = vec![];
+        for &face_idx in cell.faces.iter() {
+            if face_idx == prev_face_idx {
+                continue;
+            }
+            face = &self.faces[face_idx as usize];
+            let f_start_x = face.start.x();
+            let f_start_y = face.start.y();
+            let f_end_x = face.end.x();
+            let f_end_y = face.end.y();
+            if let Some((intersection_x, intersection_y)) = line_segment_intersection(start_x, start_y, end_x, end_y, f_start_x, f_start_y, f_end_x, f_end_y) {
+                let dist = (Vec2::new(start_x, start_y) - Vec2::new(intersection_x, intersection_y)).norm();
+                if dist > 1e-13 {
+                    return Ok(IntersectionResult{
+                        distance: dist,
+                        intersection: Vec2::new(intersection_x, intersection_y),
+                        exit_face_idx: face_idx,
+                        exit_face: face
+                    });
+                } else {
+                    possible_results.push(IntersectionResult{
+                        distance: dist,
+                        intersection: Vec2::new(intersection_x, intersection_y),
+                        exit_face_idx: face_idx,
+                        exit_face: face
+                    })
+                }
+            }
+        }
+        if possible_results.len() == 0 {
+            Err(VoronoiError{
+                message: "No valid intersected face found!".to_string(), line: line!(), column: column!()
+            })
+        } else {
+            let mut idx_max = 0;
+            let mut cur_max = 0.;
+            for (i, res) in possible_results.iter().enumerate() {
+                if res.distance > cur_max {
+                    idx_max = i;
+                    cur_max = res.distance;
+                }
+            }
+            Ok(possible_results[idx_max])
+        }
+
     }
 
     pub fn lloyd_relax(&self, move_threshold: f64, max_iter: usize) -> VoronoiGrid {
